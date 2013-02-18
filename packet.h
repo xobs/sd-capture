@@ -68,11 +68,19 @@ public:
 	/* Reset event */
 	uint8_t resetVersion() const;
 
+	/* Get CSD */
+	const QString &csd() const;
+
+	/* Get CID */
+	const QString &cid() const;
+
 private:
     struct pkt packet;
 	int packetIndex;
 	QString errorString;
 	QString commandNameString;
+	QString cardCSD;
+	QString cardCID;
 
 signals:
     

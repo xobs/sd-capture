@@ -119,7 +119,7 @@ struct pkt_buffer_drain {
 
 struct pkt_hello {
 	uint8_t version;
-};
+} __attribute__((__packed__));
 
 
 union pkt_data {
@@ -136,12 +136,12 @@ union pkt_data {
     struct pkt_reset reset;
 	struct pkt_buffer_drain buffer_drain;
 	struct pkt_hello hello;
-};
+} __attribute__((__packed__));
 
 struct pkt {
 	struct pkt_header header;
 	union pkt_data data;
-};
+} __attribute__((__packed__));
 
 
 

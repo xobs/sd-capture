@@ -5,6 +5,10 @@
 NetworkConnection::NetworkConnection(QObject *parent) :
 	QObject(parent),
 	dataSocket(this),
+	currentCommand(-1),
+	currentSubCommand(0),
+	currentSyncPoint(0),
+	ignoreBuffer(0),
 	goodPackets(0),
 	skipPackets(0),
 	bufferDraining(false),
@@ -29,12 +33,14 @@ bool NetworkConnection::setLogfile(QString &filename)
 	return logFile.open(QIODevice::WriteOnly);
 }
 
-void NetworkConnection::runScript(QStringList &script)
+void NetworkConnection::runScript(QList<NetCommand> &script)
 {
-	qDebug() << "Running script: " << script;
 	networkScript = script;
 
 	currentCommand = -1;
+	currentSubCommand = -1;
+	currentSyncPoint = 0;
+
 	sendNextCommand();
 }
 
@@ -44,41 +50,6 @@ void NetworkConnection::receiveData()
 		Packet p(dataSocket, this);
 		processDataPacket(p);
 	}
-	/*
-	QByteArray byteArray(dataSocket.bytesAvailable(), 0);
-	int currentOffset;
-	int dataSize;
-	const char *data;
-
-	dataSocket.read(byteArray.data(), byteArray.size());
-	if (-1 == logFile.write(byteArray))
-		qDebug() << "Unable to log data";
-
-
-	currentOffset = 0;
-	data = byteArray.data();
-	dataSize = byteArray.size();
-
-	int packetsInFrame = 0;
-	qDebug() << "Frame was" << dataSize << "bytes large";
-	while (dataSize > 0) {
-		QByteArray subPacket(data+currentOffset, dataSize);
-		Packet p(subPacket, this);
-		qDebug() << "Packet was " << p.packetSize() << "bytes";
-		processDataPacket(p);
-
-		currentOffset += p.packetSize();
-		dataSize -= p.packetSize();
-		packetsInFrame++;
-		qDebug() << packetsInFrame << " packets in this frame," << dataSize << "bytes left";
-		if (dataSize > 0 && dataSize < sizeof(pkt_header)) {
-			qWarning() << "Fewer bytes left than pkt_header size!" << dataSize << "vs" << sizeof(pkt_header);
-			dataSize = 0;
-		}
-	}
-	qDebug() << "Finished reading frame";
-	*/
-
 }
 
 void NetworkConnection::processDataPacket(Packet &packet)
@@ -93,7 +64,8 @@ void NetworkConnection::processDataPacket(Packet &packet)
 		}
 		else if (packet.bufferDrainEvent() == PKT_BUFFER_DRAIN_STOP) {
 			bufferDraining = false;
-			qDebug() << "Drained" << packetsDrained << "packets out of NAND";
+			qDebug() << "Drained" << packetsDrained << "packets out of NAND,"
+					 << goodPackets << "total packets drained so far";
 		}
 	}
 
@@ -115,25 +87,47 @@ void NetworkConnection::processDataPacket(Packet &packet)
 	if (packet.packetType() == PACKET_ERROR
 	 && packet.errorSubsystem() == SUBSYS_FPGA
 	 && packet.errorCode() == FPGA_ERR_OVERFLOW) {
-		skipPackets = goodPackets - 100;
+		goodPackets -= 25;
+		skipPackets = goodPackets;
 	}
 
 	// If the previous command just finished, send the next command
 	if (!bufferDraining && !commandRunning) {
+
+		// If skipPackets is true, then we encountered an overflow at some
+		// point during the last command.
+		// Run the "ib" command to ignore the first few bytes, then queue
+		// up to re-run the command.
+		// Otherwise,
 		if (skipPackets) {
 			QString command;
 			command.sprintf("ib %d\n", skipPackets);
-			currentCommand--;
-			runCommand(command);
+			ignoreBuffer = skipPackets;
+			// Replay the last command
 			skipPackets = 0;
 			didSkipPackets = true;
+			runCommand(command);
 		}
-		else {
-			if (didSkipPackets)
-				didSkipPackets = false;
-			else
-				goodPackets = 0;
+
+		// If we just skipped a packet, re-run the last command.
+		else if (didSkipPackets) {
+			didSkipPackets = false;
+			currentCommand--;
 			sendNextCommand();
+		}
+
+		// Otherwise, run the next command.
+		else {
+			// If the ignoreBuffer is nonzero, reset it first
+			if (ignoreBuffer) {
+				QString command("ib 0\n");
+				ignoreBuffer = 0;
+				runCommand(command);
+			}
+			else {
+				goodPackets = 0;
+				sendNextCommand();
+			}
 		}
 	}
 
@@ -142,11 +136,20 @@ void NetworkConnection::processDataPacket(Packet &packet)
 
 void NetworkConnection::sendNextCommand()
 {
-	currentCommand++;
+	currentSubCommand++;
+	if (currentCommand < 0 || currentSubCommand >= networkScript.at(currentCommand).commands().length()) {
+		currentCommand++;
+		currentSubCommand = 0;
+	}
+
 	// Finish running commands, if we've hit the end
 	if (currentCommand >= networkScript.length())
 		return;
-	QString command = networkScript[currentCommand] + "\n";
+
+	QString command = networkScript.at(currentCommand).commands().at(currentSubCommand) + "\n";
+	if (networkScript.at(currentCommand).commands().at(currentSubCommand).startsWith(QString("ib")))
+		currentSyncPoint = currentCommand;
+
 	runCommand(command);
 }
 

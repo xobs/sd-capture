@@ -6,6 +6,7 @@
 #include <QTcpSocket>
 #include <QUdpSocket>
 #include <QStringList>
+#include "netcommand.h"
 
 class Packet;
 
@@ -20,8 +21,13 @@ public:
 private:
 	QFile logFile;
 	QTcpSocket dataSocket;
-	QStringList networkScript;
+	QList<NetCommand> networkScript;
+
 	int currentCommand;
+	int currentSubCommand;
+	int currentSyncPoint;
+
+	int ignoreBuffer;
 	int goodPackets;
 	int skipPackets; // Used to re-run commands
 	bool bufferDraining;
@@ -31,13 +37,15 @@ private:
 	void sendNextCommand();
 	void processDataPacket(Packet &p);
 
+	QByteArray networkBuffer;
+
 signals:
 	void gotPacket(Packet &packet);
 	void sendingCommand(QString &command);
 
 public slots:
 	void receiveData();
-	void runScript(QStringList &script);
+	void runScript(QList<NetCommand> &script);
 	void runCommand(QString &cmd);
 };
 

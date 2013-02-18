@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>437</width>
-    <height>589</height>
+    <width>429</width>
+    <height>645</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,6 +19,18 @@
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
        <widget class="QListWidget" name="currentScript">
+        <property name="dragEnabled">
+         <bool>true</bool>
+        </property>
+        <property name="dragDropMode">
+         <enum>QAbstractItemView::InternalMove</enum>
+        </property>
+        <property name="defaultDropAction">
+         <enum>Qt::MoveAction</enum>
+        </property>
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
         <item>
          <property name="text">
           <string>ib 0</string>
@@ -32,6 +44,11 @@
         <item>
          <property name="text">
           <string>rs</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>- sync -</string>
          </property>
         </item>
        </widget>
@@ -54,70 +71,39 @@
     </item>
     <item row="0" column="1">
      <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
+      <item row="2" column="0">
        <widget class="QPushButton" name="resetCardButton">
         <property name="text">
          <string>Reset Card</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
-       <widget class="QPushButton" name="readCurrentSectorButton">
+      <item row="18" column="0">
+       <widget class="QPushButton" name="addSyncButton">
         <property name="text">
-         <string>Read Current Sector</string>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="0">
-       <widget class="QPushButton" name="resetBufferButton">
-        <property name="text">
-         <string>Reset Buffer</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QPushButton" name="readCSDButton">
-        <property name="text">
-         <string>Read CSD</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QPushButton" name="readCIDButton">
-        <property name="text">
-         <string>Read CID</string>
+         <string>Add sync point</string>
         </property>
        </widget>
       </item>
       <item row="8" column="0">
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
-         <widget class="QLineEdit" name="setBufferValueText"/>
+         <widget class="QPushButton" name="readCIDButton">
+          <property name="text">
+           <string>Read CID</string>
+          </property>
+         </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="setBufferValueButton">
+         <widget class="QPushButton" name="readCSDButton">
           <property name="text">
-           <string>Set Buffer Value</string>
+           <string>Read CSD</string>
           </property>
          </widget>
         </item>
        </layout>
       </item>
-      <item row="9" column="0">
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
-         <widget class="QLineEdit" name="setBufferOffsetText"/>
-        </item>
-        <item>
-         <widget class="QPushButton" name="setBufferOffsetButton">
-          <property name="text">
-           <string>Set Buffer Offset</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="2" column="0">
+      <item row="15" column="0">
        <layout class="QHBoxLayout" name="horizontalLayout_5">
         <item>
          <widget class="QLineEdit" name="setSectorText"/>
@@ -131,30 +117,63 @@
         </item>
        </layout>
       </item>
-      <item row="10" column="0">
-       <widget class="QPushButton" name="writeSectorButton">
-        <property name="text">
-         <string>Write Current Sector</string>
+      <item row="0" column="0">
+       <layout class="QHBoxLayout" name="horizontalLayout"/>
+      </item>
+      <item row="17" column="0">
+       <widget class="QGroupBox" name="groupBox">
+        <property name="title">
+         <string>Current sector</string>
         </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <item>
+          <widget class="QPushButton" name="readCurrentSectorButton">
+           <property name="text">
+            <string>Read</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="writeSectorButton">
+           <property name="text">
+            <string>Write</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
-      <item row="11" column="0">
-       <spacer name="verticalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
+      <item row="9" column="0">
+       <widget class="QGroupBox" name="groupBox_2">
+        <property name="title">
+         <string>NAND logging</string>
         </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <item>
+          <widget class="QPushButton" name="stopLoggingButton">
+           <property name="text">
+            <string>Pause</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="resumeLoggingButton">
+           <property name="text">
+            <string>Resume</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </item>
      </layout>
     </item>
     <item row="1" column="0" colspan="2">
-     <widget class="QTextBrowser" name="networkConsole"/>
+     <widget class="QTextBrowser" name="networkConsole">
+      <property name="readOnly">
+       <bool>false</bool>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -163,7 +182,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>437</width>
+     <width>429</width>
      <height>22</height>
     </rect>
    </property>

@@ -28,20 +28,35 @@ QList<QString> &PacketTypes()
 
 static qint64 streamReadData(QIODevice &source, char *data, qint64 bytesTotal) {
 	qint64 bytesRead = 0;
-	while (bytesTotal) {
-		int result = source.read(data+bytesRead, bytesTotal);
-		if (result == 0) {
-			qDebug() << "Source is done, closing";
-			if (source.waitForReadyRead(-1))
-				continue;
-			return bytesRead;
-		}
+	qint64 bytesLeft = bytesTotal;
+	int result;
+
+	while (bytesLeft > 0) {
+		result = source.read(data, bytesLeft);
 		if (result < 0) {
-			qDebug() << "Source had error";
+			qDebug() << "Source had error:" << source.errorString();
 			return result;
 		}
+
+		if (result == 0) {
+			if (!source.waitForReadyRead(-1)) {
+				qDebug() << "Source is done, closing";
+				break;
+			}
+		}
+
+		if (result > bytesTotal) {
+			qDebug() << "Very bad.  Wanted " << bytesTotal << ", but got " << result;
+		}
 		bytesRead += result;
-		bytesTotal -= result;
+		data += result;
+		if (bytesLeft - result < 0) {
+			qDebug() << "That was a really strange read";
+		}
+		bytesLeft -= result;
+	}
+	if (bytesLeft < 0) {
+		qDebug() << "How could bytesLeft (" << bytesLeft << ") be less than zero?";
 	}
 	return bytesRead;
 }
@@ -61,11 +76,15 @@ Packet::Packet(QIODevice &source, QObject *parent) :
 	memset(&packet, 0, sizeof(packet));
 	bytesRead = streamReadData(source, (char *)(&packet.header), sizeof(packet.header));
 	if (bytesRead != sizeof(packet.header)) {
-		qWarning() << "Read an unexpected number of bytes:" << bytesRead << "vs" << sizeof(packet.header);
+		qDebug() << "Read an unexpected number of bytes:" << bytesRead << "vs" << sizeof(packet.header);
 	}
     packet.header.nsec = ntohl(packet.header.nsec);
     packet.header.sec = ntohl(packet.header.sec);
     packet.header.size = ntohs(packet.header.size);
+	if (packet.header.size > sizeof(packet)) {
+		qDebug() << "Header size is VERY wrong:" << packet.header.size;
+	}
+
 	bytesRead = streamReadData(source, (char *)(&packet.data), packet.header.size - sizeof(packet.header));
 	decodePacket();
 }
@@ -130,6 +149,37 @@ void Packet::decodePacket() {
 	}
 	else
 		commandNameString = "";
+
+	if (packetType() == PACKET_SD_CID) {
+		cardCID.sprintf("%02x %02x %02x %02x %02x %02x %02x %02x",
+						packet.data.cid.cid[0],
+						packet.data.cid.cid[1],
+						packet.data.cid.cid[2],
+						packet.data.cid.cid[3],
+						packet.data.cid.cid[4],
+						packet.data.cid.cid[5],
+						packet.data.cid.cid[6],
+						packet.data.cid.cid[7]
+						);
+	}
+	else
+		cardCID = "";
+
+	if (packetType() == PACKET_SD_CSD) {
+		cardCSD.sprintf("%02x %02x %02x %02x %02x %02x %02x %02x",
+						packet.data.csd.csd[0],
+						packet.data.csd.csd[1],
+						packet.data.csd.csd[2],
+						packet.data.csd.csd[3],
+						packet.data.csd.csd[4],
+						packet.data.csd.csd[5],
+						packet.data.csd.csd[6],
+						packet.data.csd.csd[7]
+						);
+	}
+	else
+		cardCSD = "";
+
 }
 
 uint32_t Packet::nanoSeconds() const {
@@ -257,6 +307,14 @@ uint8_t Packet::resetVersion() const {
 	return packet.data.reset.version;
 }
 
+const QString &Packet::csd() const {
+	return cardCSD;
+}
+
+const QString &Packet::cid() const {
+	return cardCID;
+}
+
 QDebug operator<<(QDebug dbg, const Packet &p)
 {
 	QString timestamp;
@@ -280,11 +338,11 @@ QDebug operator<<(QDebug dbg, const Packet &p)
 
 		case PACKET_COMMAND:
 			if (p.commandState() == CMD_START)
-				QTextStream(&message) << "Start " << p.commandName();
+				QTextStream(&message) << "Start " << p.commandName() << "(" << p.commandArg() << ")";
 			else if (p.commandState() == CMD_STOP)
-				QTextStream(&message) << "Finish " << p.commandName();
+				QTextStream(&message) << "Finish " << p.commandName() << "(" << p.commandArg() << ")";
 			else
-				QTextStream(&message) << "Unknown state for " << p.commandName();
+				QTextStream(&message) << "Unknown state for " << p.commandName() << "(" << p.commandArg() << ")";
 			break;
 
 		case PACKET_SD_RESPONSE:
@@ -314,6 +372,14 @@ QDebug operator<<(QDebug dbg, const Packet &p)
 				QTextStream(&message) << "Buffer finished draining";
 			else
 				QTextStream(&message) << "Buffer drain did something unknown: " << p.bufferDrainEvent();
+			break;
+
+		case PACKET_SD_CID:
+			QTextStream(&message) << "Card CID: " << p.cid();
+			break;
+
+		case PACKET_SD_CSD:
+			QTextStream(&message) << "Card CSD: " << p.csd();
 			break;
 
 		case PACKET_UNKNOWN:

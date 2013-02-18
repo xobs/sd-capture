@@ -15,14 +15,27 @@ SOURCES += main.cpp\
     networkconnection.cpp \
     controllerwindow.cpp \
     packetstream.cpp \
-    packet.cpp
+    packet.cpp \
+    netcommand.cpp \
+    datainput.cpp \
+    xbytearray.cpp \
+    qhexedit.cpp \
+    qhexedit_p.cpp \
+    commands.cpp
 
 HEADERS  += mainwindow.h \
     networkconnection.h \
     controllerwindow.h \
     packet-struct.h \
     packetstream.h \
-    packet.h
+    packet.h \
+    netcommand.h \
+    datainput.h \
+    xbytearray.h \
+    qhexedit.h \
+    qhexedit_p.h \
+    commands.h
 
 FORMS    += mainwindow.ui \
-    controllerwindow.ui
+    controllerwindow.ui \
+    datainput.ui

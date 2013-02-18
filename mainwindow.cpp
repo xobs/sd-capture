@@ -29,9 +29,8 @@ void MainWindow::doConnect()
 	controllerWindow = new ControllerWindow(this);
 	controllerWindow->setVisible(true);
 
-	connect(&networkConnection, SIGNAL(gotCommandLineText(QString&)), controllerWindow, SLOT(appendTextToConsole(QString&)));
 	connect(&networkConnection, SIGNAL(sendingCommand(QString&)), controllerWindow, SLOT(appendTextToConsole(QString&)));
-	connect(controllerWindow, SIGNAL(runScript(QStringList&)), &networkConnection, SLOT(runScript(QStringList&)));
+	connect(controllerWindow, SIGNAL(runScript(QList<NetCommand>&)), &networkConnection, SLOT(runScript(QList<NetCommand>&)));
 
 	networkConnection.setLogfile(logfilename);
 	qDebug() << "Connecting to host:" << hostname << "and logfile" << logfilename;
