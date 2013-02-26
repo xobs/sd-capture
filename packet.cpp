@@ -5,6 +5,40 @@
 
 static QList<QString> packetTypes;
 
+enum control_pins {
+    NAND_ALE = 2,
+    NAND_CLE = 1,
+    NAND_WE = 4,
+    NAND_RE = 8,
+    NAND_CS = 16,
+    NAND_RB = 32,
+};
+
+static uint8_t order[] = {
+    4,  // Known
+    5,  // Known
+    6,  // Known
+    7,  // Known
+
+    3,  // Known
+    2,  // Known
+    1,  // Known
+    0,  // Known
+};
+
+static uint8_t nand_unscramble_byte(uint8_t byte) {
+    return (
+          ( (!!(byte&(1<<order[0]))) << 0)
+        | ( (!!(byte&(1<<order[1]))) << 1)
+        | ( (!!(byte&(1<<order[2]))) << 2)
+        | ( (!!(byte&(1<<order[3]))) << 3)
+        | ( (!!(byte&(1<<order[4]))) << 4)
+        | ( (!!(byte&(1<<order[5]))) << 5)
+        | ( (!!(byte&(1<<order[6]))) << 6)
+        | ( (!!(byte&(1<<order[7]))) << 7)
+    );
+}
+
 QList<QString> &PacketTypes()
 {
     if (packetTypes.length() <= 0) {
@@ -225,7 +259,7 @@ uint8_t Packet::nandControl() const {
 uint8_t Packet::nandData() const {
 	if (packetType() != PACKET_NAND_CYCLE)
         return 0;
-	return packet.data.nand_cycle.data;
+	return nand_unscramble_byte(packet.data.nand_cycle.data);
 }
 uint16_t Packet::nandUnknown() const {
 	if (packetType() != PACKET_NAND_CYCLE)
@@ -349,8 +383,19 @@ QDebug operator<<(QDebug dbg, const Packet &p)
 			QTextStream(&message) << "First byte of card response: " << QString::number(p.sdResponse(), 16);
 			break;
 
-		case PACKET_NAND_CYCLE:
-			QTextStream(&message) << QString::number(p.nandData(), 16) << " " << QString::number(p.nandControl(), 16) << " (" << QString::number(p.nandUnknown(), 16) << ")";
+		case PACKET_NAND_CYCLE: {
+                QString ctrlString;
+                uint8_t ctrl = p.nandControl();
+                QTextStream(&message)
+                    << QString("%1").arg(p.nandData(), 2, 16, QChar('0'))
+                    << " " << (ctrl&NAND_ALE?"A":" ")
+                    << " " << (ctrl&NAND_CLE?"C":" ")
+                    << " " << (ctrl&NAND_WE?"W":" ")
+                    << " " << (ctrl&NAND_RE?"R":" ")
+                    << " " << (ctrl&NAND_CS?"S":" ")
+                    << " " << (ctrl&NAND_RB?"B":" ")
+                    << " (" << QString("%1").arg(p.nandUnknown(), 4, 16, QChar('0')) << ")";
+            }
 			break;
 
 		case PACKET_SD_DATA:
