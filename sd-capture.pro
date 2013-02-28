@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     xbytearray.cpp \
     qhexedit.cpp \
     qhexedit_p.cpp \
-    commands.cpp
+    commands.cpp \
+    byteswap.cpp
 
 HEADERS  += mainwindow.h \
     networkconnection.h \
