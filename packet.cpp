@@ -112,14 +112,11 @@ Packet::Packet(QIODevice &source, QObject *parent) :
 	if (bytesRead != sizeof(packet.header)) {
 		qDebug() << "Read an unexpected number of bytes:" << bytesRead << "vs" << sizeof(packet.header);
 	}
-    packet.header.nsec = ntohl(packet.header.nsec);
-    packet.header.sec = ntohl(packet.header.sec);
-    packet.header.size = ntohs(packet.header.size);
-	if (packet.header.size > sizeof(packet)) {
-		qDebug() << "Header size is VERY wrong:" << packet.header.size;
+	if (ntohs(packet.header.size) > sizeof(packet)) {
+		qDebug() << "Header size is VERY wrong:" << ntohs(packet.header.size);
 	}
 
-	bytesRead = streamReadData(source, (char *)(&packet.data), packet.header.size - sizeof(packet.header));
+	bytesRead = streamReadData(source, (char *)(&packet.data), ntohs(packet.header.size) - sizeof(packet.header));
 	decodePacket();
 }
 
@@ -131,9 +128,6 @@ Packet::Packet(QByteArray &data, QObject *parent) :
 	if (size > sizeof(packet))
 		size = sizeof(packet);
 	memcpy(&packet, data, size);
-	packet.header.nsec = ntohl(packet.header.nsec);
-	packet.header.sec = ntohl(packet.header.sec);
-	packet.header.size = ntohs(packet.header.size);
 	decodePacket();
 }
 
@@ -217,15 +211,15 @@ void Packet::decodePacket() {
 }
 
 uint32_t Packet::nanoSeconds() const {
-    return packet.header.nsec;
+	return ntohl(packet.header.nsec);
 }
 
 time_t Packet::seconds() const {
-    return packet.header.sec;
+	return ntohl(packet.header.sec);
 }
 
 uint32_t Packet::packetSize() const {
-	return packet.header.size;
+	return ntohs(packet.header.size);
 }
 
 enum pkt_type Packet::packetType() const {
@@ -435,4 +429,8 @@ QDebug operator<<(QDebug dbg, const Packet &p)
 
 	dbg.nospace() << message;
 	return dbg.space();
+}
+
+qint64 Packet::write(QIODevice &device) {
+	return device.write((const char *)&packet, packetSize());
 }

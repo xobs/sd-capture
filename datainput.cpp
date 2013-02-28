@@ -28,6 +28,7 @@ void DataInput::doCancelData()
 
 void DataInput::doSaveData()
 {
+	data = ui->hexEdit->data();
 	emit saveData(data);
 }
 

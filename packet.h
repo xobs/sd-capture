@@ -27,6 +27,9 @@ public:
     bool operator<(const Packet &other) const;
 	void decodePacket();
 
+	/* Used for writing data out */
+	qint64 write(QIODevice &device);
+
 	uint32_t nanoSeconds() const;
 	time_t seconds() const;
 	uint32_t packetSize() const;

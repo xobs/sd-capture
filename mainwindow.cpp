@@ -1,5 +1,6 @@
 #include <QDebug>
 #include <QDateTime>
+#include <QFileDialog>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
@@ -20,10 +21,21 @@ MainWindow::~MainWindow()
 
 void MainWindow::doConnect()
 {
-	QDateTime now = QDateTime::currentDateTime();
-	QString nowString = now.toString("yyMMddHHmmss");
 	QString hostname = ui->hostAddress->text();
-	QString logfilename = "log-" + hostname + "-" + nowString;
+	QString logfilename;
+
+	QFileDialog selectFile(ui->centralWidget);
+	selectFile.setFileMode(QFileDialog::AnyFile);
+	selectFile.setAcceptMode(QFileDialog::AcceptSave);
+	selectFile.setNameFilter("Raw Tap Board capture files (*.tbraw)");
+	selectFile.selectFile(QString("log-%1.tbraw").arg(QDateTime::currentDateTime().toString("yyMMddHHmm")));
+	if (!selectFile.exec()) {
+		qDebug() << "No file selected";
+		return;
+	}
+	logfilename = selectFile.selectedFiles()[0];
+
+
 
 	this->setVisible(false);
 	controllerWindow = new ControllerWindow(this);

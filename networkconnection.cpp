@@ -2,6 +2,8 @@
 #include "networkconnection.h"
 #include "packet.h"
 
+#define REREAD_OVERLAP 80
+
 NetworkConnection::NetworkConnection(QObject *parent) :
 	QObject(parent),
 	dataSocket(this),
@@ -49,6 +51,7 @@ void NetworkConnection::receiveData()
 	while(dataSocket.bytesAvailable()) {
 		Packet p(dataSocket, this);
 		processDataPacket(p);
+		p.write(logFile);
 	}
 }
 
@@ -87,7 +90,7 @@ void NetworkConnection::processDataPacket(Packet &packet)
 	if (packet.packetType() == PACKET_ERROR
 	 && packet.errorSubsystem() == SUBSYS_FPGA
 	 && packet.errorCode() == FPGA_ERR_OVERFLOW) {
-		goodPackets -= 25;
+		goodPackets -= REREAD_OVERLAP;
 		skipPackets = goodPackets;
 	}
 
@@ -112,22 +115,13 @@ void NetworkConnection::processDataPacket(Packet &packet)
 		// If we just skipped a packet, re-run the last command.
 		else if (didSkipPackets) {
 			didSkipPackets = false;
-			currentCommand--;
+			currentCommand = currentSyncPoint-1;
 			sendNextCommand();
 		}
 
 		// Otherwise, run the next command.
 		else {
-			// If the ignoreBuffer is nonzero, reset it first
-			if (ignoreBuffer) {
-				QString command("ib 0\n");
-				ignoreBuffer = 0;
-				runCommand(command);
-			}
-			else {
-				goodPackets = 0;
-				sendNextCommand();
-			}
+			sendNextCommand();
 		}
 	}
 
@@ -146,9 +140,14 @@ void NetworkConnection::sendNextCommand()
 	if (currentCommand >= networkScript.length())
 		return;
 
+	// If we have an explicit command starting with "ib", start a new
+	// sync point
 	QString command = networkScript.at(currentCommand).commands().at(currentSubCommand) + "\n";
-	if (networkScript.at(currentCommand).commands().at(currentSubCommand).startsWith(QString("ib")))
-		currentSyncPoint = currentCommand;
+	if (networkScript.at(currentCommand).commands().at(currentSubCommand).startsWith(QString("ib"))) {
+		currentSyncPoint = currentCommand+1;
+		skipPackets = 0;
+		goodPackets = 0;
+	}
 
 	runCommand(command);
 }
