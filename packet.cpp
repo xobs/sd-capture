@@ -1,7 +1,7 @@
-#include <arpa/inet.h>
 #include <QDebug>
 #include <QTextStream>
 #include "packet.h"
+#include "byteswap.h"
 
 static QList<QString> packetTypes;
 
@@ -112,11 +112,11 @@ Packet::Packet(QIODevice &source, QObject *parent) :
 	if (bytesRead != sizeof(packet.header)) {
 		qDebug() << "Read an unexpected number of bytes:" << bytesRead << "vs" << sizeof(packet.header);
 	}
-	if (ntohs(packet.header.size) > sizeof(packet)) {
-		qDebug() << "Header size is VERY wrong:" << ntohs(packet.header.size);
+	if (_ntohs(packet.header.size) > sizeof(packet)) {
+		qDebug() << "Header size is VERY wrong:" << _ntohs(packet.header.size);
 	}
 
-	bytesRead = streamReadData(source, (char *)(&packet.data), ntohs(packet.header.size) - sizeof(packet.header));
+	bytesRead = streamReadData(source, (char *)(&packet.data), _ntohs(packet.header.size) - sizeof(packet.header));
 	decodePacket();
 }
 
@@ -211,15 +211,15 @@ void Packet::decodePacket() {
 }
 
 uint32_t Packet::nanoSeconds() const {
-	return ntohl(packet.header.nsec);
+	return _ntohl(packet.header.nsec);
 }
 
 time_t Packet::seconds() const {
-	return ntohl(packet.header.sec);
+	return _ntohl(packet.header.sec);
 }
 
 uint32_t Packet::packetSize() const {
-	return ntohs(packet.header.size);
+	return _ntohs(packet.header.size);
 }
 
 enum pkt_type Packet::packetType() const {
@@ -258,7 +258,7 @@ uint8_t Packet::nandData() const {
 uint16_t Packet::nandUnknown() const {
 	if (packetType() != PACKET_NAND_CYCLE)
 		return 0;
-	return ntohs(packet.data.nand_cycle.unknown);
+	return _ntohs(packet.data.nand_cycle.unknown);
 }
 
 const QString &Packet::errorStr() const {
@@ -274,7 +274,7 @@ uint32_t Packet::errorCode() const {
 uint32_t Packet::errorArgument() const {
 	if (packetType() != PACKET_ERROR)
 		return 0;
-	return ntohs(packet.data.error.arg);
+	return _ntohs(packet.data.error.arg);
 }
 
 uint32_t Packet::errorSubsystem() const {
@@ -304,7 +304,7 @@ uint8_t Packet::commandState() const {
 uint32_t Packet::commandArg() const {
 	if (packetType() != PACKET_COMMAND)
 		return 0;
-	return ntohl(packet.data.command.arg);
+	return _ntohl(packet.data.command.arg);
 }
 
 const QString &Packet::commandName() const {

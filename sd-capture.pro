@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui network
+QT       += core gui network declarative
 
 TARGET = sd-capture
 TEMPLATE = app
@@ -34,7 +34,8 @@ HEADERS  += mainwindow.h \
     xbytearray.h \
     qhexedit.h \
     qhexedit_p.h \
-    commands.h
+    commands.h \
+    byteswap.h
 
 FORMS    += mainwindow.ui \
     controllerwindow.ui \
