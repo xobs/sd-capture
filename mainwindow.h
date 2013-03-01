@@ -19,6 +19,8 @@ public:
 
 public slots:
 	void doConnect();
+	void networkConnected();
+	void networkConnectionError(QAbstractSocket::SocketError);
 
 private:
 	Ui::MainWindow *ui;

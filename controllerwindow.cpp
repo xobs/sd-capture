@@ -68,6 +68,7 @@ void ControllerWindow::highlightCommand(const QString &command, int position)
 void ControllerWindow::networkScriptDone()
 {
 	ui->scriptProgress->setVisible(false);
+	ui->deleteLineButton->setVisible(true);
 	ui->currentScript->setCurrentRow(-1);
 }
 
@@ -81,6 +82,7 @@ void ControllerWindow::doRunScript()
 {
 	ui->scriptProgress->setVisible(true);
 	ui->scriptProgress->setMaximum(cmds.count());
+	ui->deleteLineButton->setVisible(false);
 	ui->scriptProgress->setValue(0);
 	emit runScript(cmds);
 }

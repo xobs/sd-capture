@@ -14,7 +14,6 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     networkconnection.cpp \
     controllerwindow.cpp \
-    packetstream.cpp \
     packet.cpp \
     netcommand.cpp \
     datainput.cpp \
@@ -28,7 +27,6 @@ HEADERS  += mainwindow.h \
     networkconnection.h \
     controllerwindow.h \
     packet-struct.h \
-    packetstream.h \
     packet.h \
     netcommand.h \
     datainput.h \

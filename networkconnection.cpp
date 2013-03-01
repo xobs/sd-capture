@@ -1,6 +1,10 @@
 #include <QFile>
+#include <QDialog>
+#include <QApplication>
+#include <QErrorMessage>
 #include "networkconnection.h"
 #include "packet.h"
+#include "mainwindow.h"
 
 #define REREAD_OVERLAP 80
 
@@ -17,6 +21,10 @@ NetworkConnection::NetworkConnection(QObject *parent) :
 	commandRunning(false),
 	didSkipPackets(false)
 {
+	connect(&dataSocket, SIGNAL(connected()),
+			(MainWindow *)parent, SLOT(networkConnected()));
+	connect(&dataSocket, SIGNAL(error(QAbstractSocket::SocketError)),
+			(MainWindow *)parent, SLOT(networkConnectionError(QAbstractSocket::SocketError)));
 }
 
 bool NetworkConnection::connectToHost(QString &hostname, quint16 dataPort)
@@ -28,11 +36,29 @@ bool NetworkConnection::connectToHost(QString &hostname, quint16 dataPort)
 
 bool NetworkConnection::setLogfile(QString &filename)
 {
+	bool result;
 	if (logFile.isOpen())
 		logFile.close();
 
 	logFile.setFileName(filename);
-	return logFile.open(QIODevice::WriteOnly);
+	result = logFile.open(QIODevice::WriteOnly);
+
+	// If we were unable to open the logfile, display an error
+	if (!result) {
+		QErrorMessage errorMessage(NULL);
+		errorMessage.showMessage(QString("Unable to open logfile: %1").arg(logFile.errorString()));
+		errorMessage.exec();
+		qApp->quit();
+		return false;
+	}
+
+	// We opened the file, so drain the packet buffer
+	for (int i=0; i<packetBuffer.count(); i++) {
+		((Packet)packetBuffer.at(i)).write(logFile);
+	}
+	packetBuffer.clear();
+
+	return result;
 }
 
 void NetworkConnection::runScript(QList<NetCommand> &script)
@@ -51,14 +77,15 @@ void NetworkConnection::receiveData()
 	while(dataSocket.bytesAvailable()) {
 		Packet p(dataSocket, this);
 		processDataPacket(p);
-		p.write(logFile);
+		if (logFile.isOpen())
+			p.write(logFile);
+		else
+			packetBuffer.append(p);
 	}
 }
 
 void NetworkConnection::processDataPacket(Packet &packet)
 {
-	qDebug() << "Got data packet:" << packet;
-
 	// If the buffer starts draining, hold off on new commands
 	if (packet.packetType() == PACKET_BUFFER_DRAIN) {
 		if (packet.bufferDrainEvent() == PKT_BUFFER_DRAIN_START) {
@@ -67,8 +94,6 @@ void NetworkConnection::processDataPacket(Packet &packet)
 		}
 		else if (packet.bufferDrainEvent() == PKT_BUFFER_DRAIN_STOP) {
 			bufferDraining = false;
-			qDebug() << "Drained" << packetsDrained << "packets out of NAND,"
-					 << goodPackets << "total packets drained so far";
 		}
 	}
 

@@ -1,6 +1,7 @@
 #include <QDebug>
 #include <QDateTime>
 #include <QFileDialog>
+#include <QErrorMessage>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
@@ -22,18 +23,6 @@ MainWindow::~MainWindow()
 void MainWindow::doConnect()
 {
 	QString hostname = ui->hostAddress->text();
-	QString logfilename;
-
-	QFileDialog selectFile(ui->centralWidget);
-	selectFile.setFileMode(QFileDialog::AnyFile);
-	selectFile.setAcceptMode(QFileDialog::AcceptSave);
-	selectFile.setNameFilter("Raw Tap Board capture files (*.tbraw)");
-	selectFile.selectFile(QString("log-%1.tbraw").arg(QDateTime::currentDateTime().toString("yyMMddHHmm")));
-	if (!selectFile.exec()) {
-		qDebug() << "No file selected";
-		return;
-	}
-	logfilename = selectFile.selectedFiles()[0];
 
 
 
@@ -41,14 +30,39 @@ void MainWindow::doConnect()
 	controllerWindow = new ControllerWindow(this);
 	controllerWindow->setVisible(true);
 
-	connect(&networkConnection, SIGNAL(sendingCommand(QString,int)), controllerWindow, SLOT(appendTextToConsole(QString,int)));
-	connect(controllerWindow, SIGNAL(runScript(QList<NetCommand>&)), &networkConnection, SLOT(runScript(QList<NetCommand>&)));
+	connect(controllerWindow, SIGNAL(runScript(QList<NetCommand>&)),
+			&networkConnection, SLOT(runScript(QList<NetCommand>&)));
+	connect(&networkConnection, SIGNAL(sendingCommand(QString,int)),
+			controllerWindow, SLOT(appendTextToConsole(QString,int)));
 	connect(&networkConnection, SIGNAL(sendingCommand(QString,int)),
 			controllerWindow, SLOT(highlightCommand(QString,int)));
 	connect(&networkConnection, SIGNAL(scriptComplete()),
 			controllerWindow, SLOT(networkScriptDone()));
 
-	networkConnection.setLogfile(logfilename);
-	qDebug() << "Connecting to host:" << hostname << "and logfile" << logfilename;
 	networkConnection.connectToHost(hostname);
+}
+
+void MainWindow::networkConnectionError(QAbstractSocket::SocketError error)
+{
+	QErrorMessage dialog;
+	dialog.showMessage(QString("Unable to connect to server: %1").arg(error));
+	dialog.exec();
+	qApp->quit();
+}
+
+void MainWindow::networkConnected()
+{
+	QString logfilename;
+
+	QFileDialog selectFile(controllerWindow->centralWidget());
+	selectFile.setFileMode(QFileDialog::AnyFile);
+	selectFile.setAcceptMode(QFileDialog::AcceptSave);
+	selectFile.setNameFilter("Raw Tap Board capture files (*.tbraw)");
+	selectFile.selectFile(QString("log-%1.tbraw").arg(QDateTime::currentDateTime().toString("yyMMdd-HHmm")));
+	if (!selectFile.exec()) {
+		qDebug() << "No file selected";
+		qApp->quit();
+	}
+	logfilename = selectFile.selectedFiles()[0];
+	networkConnection.setLogfile(logfilename);
 }

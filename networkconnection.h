@@ -7,6 +7,7 @@
 #include <QUdpSocket>
 #include <QStringList>
 #include "netcommand.h"
+#include "packet.h"
 
 class Packet;
 
@@ -38,6 +39,7 @@ private:
 	void processDataPacket(Packet &p);
 
 	QByteArray networkBuffer;
+	QList<Packet> packetBuffer; // Buffer packets while the logfile is opened
 
 signals:
 	void gotPacket(Packet &packet);
