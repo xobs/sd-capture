@@ -28,6 +28,7 @@ private:
 	int currentCommand;
 	int currentSubCommand;
 	int currentSyncPoint;
+	bool haveRunScript; // True if we've ever run a script in this session
 
 	int ignoreBuffer;
 	int goodPackets;

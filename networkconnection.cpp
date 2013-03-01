@@ -14,6 +14,7 @@ NetworkConnection::NetworkConnection(QObject *parent) :
 	currentCommand(-1),
 	currentSubCommand(0),
 	currentSyncPoint(0),
+	haveRunScript(false),
 	ignoreBuffer(0),
 	goodPackets(0),
 	skipPackets(0),
@@ -73,6 +74,7 @@ void NetworkConnection::runScript(QList<NetCommand> &script)
 	currentCommand = -1;
 	currentSubCommand = -1;
 	currentSyncPoint = 0;
+	haveRunScript = true;
 
 	sendNextCommand();
 }
@@ -81,6 +83,13 @@ void NetworkConnection::receiveData()
 {
 	while(dataSocket.bytesAvailable()) {
 		Packet p(dataSocket, this);
+
+		// If we're not running a command, and if we got a packet other
+		// than a HELLO packet, it means the server has an undrained buffer.
+		// Just ignore the packet.
+		if (!haveRunScript && p.packetType() != PACKET_HELLO)
+			continue;
+
 		processDataPacket(p);
 		if (logFile.isOpen())
 			p.write(logFile);
@@ -161,6 +170,11 @@ void NetworkConnection::processDataPacket(Packet &packet)
 void NetworkConnection::sendNextCommand()
 {
 	currentSubCommand++;
+
+	// Basic sanity check (can be violated if we get stale NAND data from
+	// an initial connection.)
+	if (currentCommand > networkScript.count())
+		return;
 	if (currentCommand < 0 || currentSubCommand >= networkScript.at(currentCommand).commands().length()) {
 		currentCommand++;
 		currentSubCommand = 0;
