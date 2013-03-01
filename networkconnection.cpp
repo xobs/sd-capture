@@ -137,8 +137,10 @@ void NetworkConnection::sendNextCommand()
 	}
 
 	// Finish running commands, if we've hit the end
-	if (currentCommand >= networkScript.length())
+	if (currentCommand >= networkScript.length()) {
+		emit scriptComplete();
 		return;
+	}
 
 	// If we have an explicit command starting with "ib", start a new
 	// sync point
@@ -154,6 +156,6 @@ void NetworkConnection::sendNextCommand()
 
 void NetworkConnection::runCommand(QString &cmd)
 {
-	emit sendingCommand(cmd);
+	emit sendingCommand(cmd, currentCommand);
 	dataSocket.write(cmd.toUtf8());
 }

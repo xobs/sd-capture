@@ -41,7 +41,8 @@ private:
 
 signals:
 	void gotPacket(Packet &packet);
-	void sendingCommand(QString &command);
+	void sendingCommand(const QString &command, int index);
+	void scriptComplete();
 
 public slots:
 	void receiveData();

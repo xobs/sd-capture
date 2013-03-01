@@ -20,7 +20,7 @@ public:
 	~ControllerWindow();
 	
 public slots:
-	void appendTextToConsole(QString &str);
+	void appendTextToConsole(const QString &str, int index);
 	void removeScriptItem();
 	void doRunScript();
 
@@ -39,6 +39,9 @@ public slots:
 	void cancelWriteData();
 
 	void indexesMoved(const QModelIndexList &indexes);
+
+	void highlightCommand(const QString &command, int position);
+	void networkScriptDone();
 
 signals:
 	void runScript(QList<NetCommand> &strings);

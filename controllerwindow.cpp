@@ -30,6 +30,7 @@ ControllerWindow::ControllerWindow(QWidget *parent) :
 	connect(dataInput, SIGNAL(saveData(QByteArray)), this, SLOT(saveWriteData(QByteArray)));
 
 	ui->currentScript->clear();
+	ui->scriptProgress->setVisible(false);
 
 	NetCommand ib;
 	ib.setDisplayString(QString("Reset read offset"));
@@ -52,10 +53,22 @@ ControllerWindow::~ControllerWindow()
 	delete ui;
 }
 
-void ControllerWindow::appendTextToConsole(QString &str)
+void ControllerWindow::appendTextToConsole(const QString &str, int index)
 {
 	ui->networkConsole->insertPlainText(str);
 	ui->networkConsole->verticalScrollBar()->setValue(ui->networkConsole->verticalScrollBar()->maximum());
+}
+
+void ControllerWindow::highlightCommand(const QString &command, int position)
+{
+	ui->scriptProgress->setValue(position);
+	ui->currentScript->setCurrentRow(position);
+}
+
+void ControllerWindow::networkScriptDone()
+{
+	ui->scriptProgress->setVisible(false);
+	ui->currentScript->setCurrentRow(-1);
 }
 
 void ControllerWindow::removeScriptItem()
@@ -66,6 +79,9 @@ void ControllerWindow::removeScriptItem()
 
 void ControllerWindow::doRunScript()
 {
+	ui->scriptProgress->setVisible(true);
+	ui->scriptProgress->setMaximum(cmds.count());
+	ui->scriptProgress->setValue(0);
 	emit runScript(cmds);
 }
 
