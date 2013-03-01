@@ -34,6 +34,11 @@ bool NetworkConnection::connectToHost(QString &hostname, quint16 dataPort)
 	return true;
 }
 
+QString NetworkConnection::socketErrorString() const
+{
+	return dataSocket.errorString();
+}
+
 bool NetworkConnection::setLogfile(QString &filename)
 {
 	bool result;

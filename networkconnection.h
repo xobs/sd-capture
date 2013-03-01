@@ -18,6 +18,7 @@ public:
 	explicit NetworkConnection(QObject *parent = 0);
 	bool connectToHost(QString &hostname, quint16 dataPort = 17283);
 	bool setLogfile(QString &filename);
+	QString socketErrorString() const;
 
 private:
 	QFile logFile;

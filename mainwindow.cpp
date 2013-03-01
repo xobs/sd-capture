@@ -45,7 +45,7 @@ void MainWindow::doConnect()
 void MainWindow::networkConnectionError(QAbstractSocket::SocketError error)
 {
 	QErrorMessage dialog;
-	dialog.showMessage(QString("Unable to connect to server: %1").arg(error));
+	dialog.showMessage(QString("Unable to connect to server: %1").arg(networkConnection.socketErrorString()));
 	dialog.exec();
 	qApp->quit();
 }
